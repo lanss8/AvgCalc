@@ -1,0 +1,106 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Weekly Grade Average Calculator</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" href="icon-192.png" type="image/png">
+  <meta name="theme-color" content="#007bff">
+  <style>
+    body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background-color: #f9f9f9; }
+    .container { max-width: 600px; margin: auto; background: #fff; padding: 20px; border-radius: 12px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+    h1 { text-align: center; font-size: 1.8rem; margin-bottom: 20px; }
+    .subject { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 10px; }
+    .subject input { flex: 1 1 30%; padding: 8px; min-width: 100px; font-size: 1rem; }
+    .subject button { flex: 0 0 auto; padding: 8px; font-size: 1rem; background-color: #ff4d4d; color: white; border: none; border-radius: 6px; cursor: pointer; }
+    .buttons { display: flex; flex-direction: column; gap: 10px; margin-top: 20px; }
+    .buttons button { padding: 12px; font-size: 1rem; border: none; background-color: #007bff; color: white; border-radius: 6px; cursor: pointer; transition: 0.2s ease; }
+    .buttons button:hover { background-color: #0056b3; }
+    #result { margin-top: 20px; font-weight: bold; font-size: 1.2rem; text-align: center; }
+    @media (max-width: 500px) {
+      .subject input { flex: 1 1 100%; }
+      .subject { flex-direction: column; }
+      .subject button { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Weekly Grade Average</h1>
+    <div id="subjects"></div>
+    <div class="buttons">
+      <button onclick="addSubject()">+ Add Subject</button>
+      <button onclick="calculateAverage()">Calculate Average</button>
+      <button onclick="exportToPDF()">Export as PDF</button>
+    </div>
+    <div id="result"></div>
+  </div>
+  <script>
+    function createSubjectRow() {
+      const div = document.createElement("div");
+      div.className = "subject";
+      div.innerHTML = `
+        <input type="text" placeholder="Subject Name" />
+        <input type="number" placeholder="Grade" min="0" max="100" />
+        <input type="number" placeholder="Classes/Week" min="0" />
+        <button onclick="removeSubject(this)">❌</button>
+      `;
+      return div;
+    }
+    function addSubject() {
+      const container = document.getElementById("subjects");
+      container.appendChild(createSubjectRow());
+    }
+    function removeSubject(btn) { btn.parentElement.remove(); }
+    function calculateAverage() {
+      const rows = document.querySelectorAll(".subject");
+      let totalWeighted = 0, totalClasses = 0;
+      for (const row of rows) {
+        const inputs = row.querySelectorAll("input");
+        const grade = parseFloat(inputs[1].value);
+        const classes = parseFloat(inputs[2].value);
+        if (!isNaN(grade) && !isNaN(classes)) {
+          totalWeighted += grade * classes;
+          totalClasses += classes;
+        }
+      }
+      const resultDiv = document.getElementById("result");
+      resultDiv.textContent = totalClasses === 0 ? "Please enter valid data." : `Your weekly grade average is: ${ (totalWeighted / totalClasses).toFixed(2) }`;
+    }
+    async function exportToPDF() {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+      const rows = document.querySelectorAll(".subject");
+      let y = 20;
+      doc.setFontSize(16);
+      doc.text("Weekly Grade Report", 20, y);
+      y += 10;
+      doc.setFontSize(12);
+      for (const row of rows) {
+        const inputs = row.querySelectorAll("input");
+        const name = inputs[0].value || "Unnamed Subject";
+        const grade = inputs[1].value || "-";
+        const classes = inputs[2].value || "-";
+        doc.text(`${name} — Grade: ${grade}, Classes/Week: ${classes}`, 20, y);
+        y += 10;
+      }
+      const resultText = document.getElementById("result").textContent;
+      if (resultText) {
+        y += 10;
+        doc.setFontSize(14);
+        doc.text(resultText, 20, y);
+      }
+      doc.save("grade_report.pdf");
+    }
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('./service-worker.js')
+        .then(reg => console.log("✅ Service Worker Registered"))
+        .catch(err => console.error("⚠️ Service Worker Error", err));
+    }
+    addSubject();
+  </script>
+</body>
+</html>
